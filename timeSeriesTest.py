@@ -13,8 +13,8 @@
 
 starttime     = 1388432485     # timestamp in the first batch to load (1388432485)
 ts_interval   = 60             # artificial time between each batch to load (60)
-iterations    = 500            # how many batches to load (6000) Note: for queries 2 and 3 to work this has to be > 400
-batch_size    = 100            # rows in a batch (100*1000) (cols is a fixed 30)
+iterations    = 6000           # how many batches to load (6000) Note: for queries 2 and 3 to work this has to be > 400
+batch_size    = 100*1000       # rows in a batch (100*1000) (cols is a fixed 30)
 csvHeader     = "device_id,ts,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28\n"
 
 # You can, and should, create different loader functions to explore better performance with MongoDB or to port to other DBs
@@ -22,8 +22,8 @@ dbhost = 'localhost'
 dbport = '27017'
 dbname = 'test'
 import timeSeriesTestMongoDB as dbdriver
-setup_f       = dbdriver.csvToArray     # write the data to a csv file on disk
-load_f        = dbdriver.simpleInsert   # load the csv file with mongoimport
+setup_f       = dbdriver.writeCsvFile   # write the data to a csv file on disk
+load_f        = dbdriver.csvMongoimport # load the csv file with mongoimport
 query1        = dbdriver.query1         # select 1 random column  where device_id in 4 random id's
 query2        = dbdriver.query2         # select 1 random column  where device_id in 4 random ids AND timestamp between t and t+400*ts_interval
 query3        = dbdriver.query3         # select 4 random columns where device_id in 4 random ids AND timestamp between t and t+400*ts_interval
@@ -99,10 +99,12 @@ for i in range(1, iterations+1) :
   timer = timeBatchLoading(csv, load_f, setup_f)
   print "Load %s took: %s sec." % (i, timer)
   timings.append(timer)
+  sys.stdout.flush()
   
 print "\nAll %s load times were:" % iterations 
 for s in timings :
   print "%s" % s
+sys.stdout.flush()
 
 # Run each query 100 times
 timings = []
@@ -114,6 +116,7 @@ for i in range(0, 100) :
 print "\nAll 100 timings for query1 were:"
 for s in timings :
   print "%s" % s
+sys.stdout.flush()
 
 timings = []
 for i in range(0, 100) :
@@ -124,6 +127,7 @@ for i in range(0, 100) :
 print "\nAll 100 timings for query2 were:"
 for s in timings :
   print "%s" % s
+sys.stdout.flush()
 
 timings = []
 for i in range(0, 100) :
@@ -134,4 +138,4 @@ for i in range(0, 100) :
 print "\nAll 100 timings for query3 were:"
 for s in timings :
   print "%s" % s
-
+sys.stdout.flush()
