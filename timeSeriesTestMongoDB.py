@@ -47,30 +47,33 @@ def csvMongoimport(f) :
 
 import pprint
 def csvToArray(csv) :
-    csvArray = []
+    docArray = []
     csvHeaders = []
     lineCount = 0
-    for line in csv.split("\n") :
+    lines = csv.split("\n")
+    lines.pop() # Since the last line ends with a newline, there's an empty list item at the end. Get rid of it.
+    for line in lines :
         if lineCount == 0 :
             csvHeaders = line.split(",")
             lineCount = lineCount + 1
             continue
-        if lineCount > config["batch_size"] :
-            break # The last newline causes there to be an empty record batch_size+1, which breaks things if allowed to proceed
         doc = {}        
         colCount = 0
         for v in line.split(",") :
             doc[ csvHeaders[colCount] ] = int(v)
             colCount = colCount + 1
-        csvArray.append(doc)
+        docArray.append(doc)
         lineCount = lineCount + 1
-    return csvArray
+    return docArray
         
-def simpleInsert(csvArray) :
+def simpleInsert(docArray) :
     db = getMongoDB()
-    for doc in csvArray :
+    for doc in docArray :
         db.tstest.insert( doc )        
 
+def arrayInsert(docArray) :
+    db = getMongoDB()
+    db.tstest.insert( docArray )        
 
 
 

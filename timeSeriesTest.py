@@ -14,10 +14,13 @@
 config = {}
 
 # Test parameters
+config["load_threads"]  = 8              # Parallel load threads (using multiprocessing module)
+config["test_threads"]  = 1              # Parallel query threads (using multiprocessing module)
+
 config["starttime"]     = 1388432485     # timestamp in the first batch to load (1388432485)
 config["ts_interval"]   = 60             # artificial time between each batch to load (60)
-config["iterations"]    = 600           # how many batches to load (6000) Note: for queries 2 and 3 to work this has to be > 400
-config["batch_size"]    = 100       # rows in a batch (100*1000) (cols is a fixed 30)
+config["iterations"]    = 6000           # how many batches to load (6000) Note: for queries 2 and 3 to work this has to be > 400
+config["batch_size"]    = 100*1000       # rows in a batch (100*1000) (cols is a fixed 30)
 config["csvHeader"]     = "device_id,ts,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28\n"
 
 # DB vendor specific parameters
@@ -28,8 +31,8 @@ config["dbport"] = '27017'
 config["dbname"] = 'test'
 import timeSeriesTestMongoDB as dbdriver
 config["init_f"]        = dbdriver.init           # drop collection, create indexes, etc... (only run if load_f is also given)
-config["prepare_f"]     = dbdriver.writeCsvFile   # write the data to a csv file on disk
-config["load_f"]        = dbdriver.csvMongoimport # load the csv file with mongoimport
+config["prepare_f"]     = dbdriver.csvToArray     # write the data to a csv file on disk
+config["load_f"]        = dbdriver.arrayInsert    # load the csv file with mongoimport
 config["tests"]         = [None]*3
 config["tests"][0]      = dbdriver.query1         # select 1 random column  where device_id in 4 random id's
 config["tests"][1]      = dbdriver.query2         # select 1 random column  where device_id in 4 random ids AND timestamp between t and t+400*ts_interval
@@ -41,19 +44,29 @@ import random
 import sys
 import time
 import pprint
-
+from   multiprocessing import Pool
+import math
 
 #Push global config vars to the sub module that needs them.
 dbdriver.config     = config
 
 
-def getCsvBatch(timestamp) :
+def getCsvBatch(paramArray) :
     """Get 100k rows with an id field, timestamp field and 28 columns with random integers."""
     random.seed(42) # Causes the generated numbers to be exactly the same for each run. Not really significant but it's a habit I have...
+
     ret = config["csvHeader"]
     
-    for i in range(0, config["batch_size"]) :
-        line = "%s,%s" % (i, int(timestamp))
+    # For multiple load threads, calculate the partition of device_id's this thread will generate
+    batch_size_per_thread = config["batch_size"] / config["load_threads"]
+    device_id_start       = int( math.floor( paramArray["i"] * batch_size_per_thread ) ) 
+    device_id_end         = int( math.floor( ( paramArray["i"] + 1 ) * batch_size_per_thread ) )
+    # I think this isn't needed, but... for the last thread, make sure the upper end is correctly rounded up/down wrt config parameter
+    if paramArray["i"] == config["load_threads"] :
+      device_id_end = config["batch_size"]
+
+    for i in range( device_id_start, device_id_end ) :
+        line = "%s,%s" % (i, int(paramArray["t"]))
         for j in range(0, 27) :
             r = random.randint(0,1000)
             line += ",%s" % r
@@ -62,14 +75,21 @@ def getCsvBatch(timestamp) :
     return ret
 
 
-def timeBatchLoading(data, f, prepare=None) :
+def timeLoading(t, f, prepare=None) :
     """Call function f, which should load csv into mongo, and time it.
     
        If prepare() is given, first call r = prepare(csv) and then f(r) with return value of prepare. Only f() is timed."""
+    
+    pool = Pool( processes=config["load_threads"] )
+    paramArray = []
+    for i in range( 0, config["load_threads"] ) :
+      paramArray.append( { "t" : t, "i" : i } )
+    
+    csv_results = pool.map( getCsvBatch, paramArray, 1 )
     if(prepare) :
-        data = prepare(data)
+        prepare_results = pool.map( prepare, csv_results )
     start = time.time()
-    f(data)
+    pool.map( f, prepare_results )
     return time.time() - start
 
 def timeQuery(q) :
@@ -82,40 +102,39 @@ def timeQuery(q) :
 
 
 
-# main
-print "Start timeSeriesTest.py dataload with following config: "
-pprint.pprint(config)
+if __name__ == '__main__':
+  print "Start timeSeriesTest.py dataload with following config: "
+  pprint.pprint(config)
 
-# Data load
-if config["load_f"] :
-  config["init_f"]()
-  t = config["starttime"]
-  timings = []
-  for i in range(1, config["iterations"]+1) :
-    t = t + config["ts_interval"]
-    data = getCsvBatch(t)  # TODO: Even this data generation function could become dynamic, so you could generate different data sets
-    print "\nStarting load %s..." % i
-    timer = timeBatchLoading(data, config["load_f"], config["prepare_f"])
-    print "Load %s took: %s sec." % (i, timer)
-    timings.append(timer)
-    sys.stdout.flush()
-  
-  print "\nAll %s load times were:" % config["iterations"] 
-  for s in timings :
-    print "%s" % s
-  sys.stdout.flush()
-
-# Run each test 100 times
-# TODO: Add configurability for iterations and parallellism
-for test in config["tests"] :
-  timings = []
-  print "\nExecuting %s 100 times." % test
-  for i in range(0, 100) :
-      timer = timeQuery(test)
+  # Data load
+  if config["load_f"] :
+    config["init_f"]()
+    t = config["starttime"]
+    timings = []
+    for i in range(1, config["iterations"]+1) :
+      t = t + config["ts_interval"]
+      print "\nStarting load %s..." % i
+      timer = timeLoading(t, config["load_f"], config["prepare_f"])
+      print "Load %s took: %s sec." % (i, timer)
       timings.append(timer)
-      #print "took: %s" % timer
-  print "\nAll 100 timings for %s were:" % test
-  for s in timings :
-    print "%s" % s
-  sys.stdout.flush()
+      sys.stdout.flush()
+    
+    print "\nAll %s load times were:" % config["iterations"] 
+    for s in timings :
+      print "%s" % s
+    sys.stdout.flush()
+
+  # Run each test 100 times
+  # TODO: Add configurability for iterations and parallellism
+  for test in config["tests"] :
+    timings = []
+    print "\nExecuting %s 100 times." % test
+    for i in range(0, 100) :
+        timer = timeQuery(test)
+        timings.append(timer)
+        #print "took: %s" % timer
+    print "\nAll 100 timings for %s were:" % test
+    for s in timings :
+      print "%s" % s
+    sys.stdout.flush()
 
