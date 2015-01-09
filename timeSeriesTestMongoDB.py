@@ -1,28 +1,28 @@
 #!/usr/bin/python
 
-# Copyright 2013, MongoDB Inc
-# Authors: Henrik Ingo, Chris Biow
+# Copyright 2013-2014, MongoDB Inc
+# Authors: Henrik Ingo
 #
-# This module contains functions to be used as setup_f() and load_f() in timeSeriesTest.py
+# This module contains MongoDB specific functions. 
+# Set which functions to use in the top of timeSeriesTest.py (e.g. config["prepare_f"], config["load_f"])
 
-# A bit unusual, but I set these in the main module with exportGlobals()
-starttime     = None
-ts_interval   = None
-iterations    = None
-batch_size    = None
-csvHeader     = None
-dbhost        = None
-dbport        = None
-dbname        = None
+# Will contain global config vars. Set in the main module.
+config        = None
 
 
 import tempfile
-
 import pymongo
 
 def getMongoDB() :
-    client = pymongo.MongoClient( "mongodb://%s:%s/" % (dbhost, dbport) )
-    return client[dbname]
+    client = pymongo.MongoClient( "mongodb://%s:%s/" % (config["dbhost"], config["dbport"]) )
+    return client[config["dbname"]]
+
+
+# Test initialization
+def init() :
+  db = getMongoDB()
+  db.tstest.drop()
+  db.tstest.ensure_index( [ ("device_id", 1), ("ts", 1)] )
 
 
 # Load data with mongoimport
@@ -38,8 +38,8 @@ import os
 
 def csvMongoimport(f) :
     """Import CSV file with mongoimport"""
-    os.system( "mongoimport --db test --collection tstest --type csv --headerline --file %s" % f.name )
-    f.close()
+    os.system( "mongoimport --db %s --collection tstest --type csv --headerline --file %s" % (config["dbname"], f.name) )
+    f.close() # temporary file automatically removed
     
 
 
@@ -55,7 +55,7 @@ def csvToArray(csv) :
             csvHeaders = line.split(",")
             lineCount = lineCount + 1
             continue
-        if lineCount > batch_size :
+        if lineCount > config["batch_size"] :
             break # The last newline causes there to be an empty record batch_size+1, which breaks things if allowed to proceed
         doc = {}        
         colCount = 0
@@ -81,8 +81,8 @@ def query1() :
     db = getMongoDB()
     ids = []
     for i in range(0, 3) :
-        ids.append( random.randint(0, batch_size-1) )
-    cols = csvHeader.split(",")
+        ids.append( random.randint(0, config["batch_size"]-1) )
+    cols = config["csvHeader"].split(",")
     col = cols[ random.randint(2,28) ]
     
     cursor = db.tstest.find( { "device_id" : { "$in" : ids } }, { col : 1 } )
@@ -96,14 +96,15 @@ def query2() :
     db = getMongoDB()
     ids = []
     for i in range(0, 3) :
-        ids.append( random.randint(0, batch_size-1) )
-    cols = csvHeader.split(",")
+        ids.append( random.randint(0, config["batch_size"]-1) )
+    cols = config["csvHeader"].split(",")
     col = cols[ random.randint(2,28) ]
     
-    t = random.randint(starttime, starttime+iterations*ts_interval-400*ts_interval)
+    t = random.randint(config["starttime"], 
+                       config["starttime"]+config["iterations"]*config["ts_interval"]-400*config["ts_interval"])
     
     cursor = db.tstest.find( { "device_id" : { "$in" : ids }, 
-                               "ts" : { "$gte" : t, "$lte" : t+400*ts_interval } }, 
+                               "ts" : { "$gte" : t, "$lte" : t+400*config["ts_interval"] } }, 
                              { col : 1 } )
     c = cursor.count()
     #if c != 3*400 :
@@ -116,17 +117,18 @@ def query3() :
     db = getMongoDB()
     ids = []
     for i in range(0, 3) :
-        ids.append( random.randint(0, batch_size-1) )
-    cols = csvHeader.split(",")
+        ids.append( random.randint(0, config["batch_size"]-1) )
+    cols = config["csvHeader"].split(",")
     col1 = cols[ random.randint(2,28) ]
     col2 = cols[ random.randint(2,28) ]
     col3 = cols[ random.randint(2,28) ]
     col4 = cols[ random.randint(2,28) ]
 
-    t = random.randint(starttime, starttime+iterations*ts_interval-400*ts_interval)
+    t = random.randint(config["starttime"], 
+                       config["starttime"]+config["iterations"]*config["ts_interval"]-400*config["ts_interval"])
         
     cursor = db.tstest.find( { "device_id" : { "$in" : ids }, 
-                               "$and" : [ { "ts" : { "$gt" : t } }, { "ts" : { "$lt" : t+400*ts_interval } } ] }, 
+                               "$and" : [ { "ts" : { "$gt" : t } }, { "ts" : { "$lt" : t+400*config["ts_interval"] } } ] }, 
                              { col1 : 1, col2 : 1, col3 : 1, col4 : 1 } )
     c = cursor.count()
     #if c != 3*400 :
