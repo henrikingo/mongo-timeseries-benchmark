@@ -61,8 +61,8 @@ def getCsvBatch(paramArray) :
     batch_size_per_thread = config["batch_size"] / config["load_threads"]
     device_id_start       = int( math.floor( paramArray["i"] * batch_size_per_thread ) ) 
     device_id_end         = int( math.floor( ( paramArray["i"] + 1 ) * batch_size_per_thread ) )
-    # I think this isn't needed, but... for the last thread, make sure the upper end is correctly rounded up/down wrt config parameter
-    if paramArray["i"] == config["load_threads"] :
+    # For the last thread, make sure the upper end is correctly rounded up/down wrt config parameter
+    if paramArray["i"] == config["load_threads"] - 1 :
       device_id_end = config["batch_size"]
 
     for i in range( device_id_start, device_id_end ) :
