@@ -126,8 +126,9 @@ if __name__ == '__main__':
       sys.stdout.flush()
     
     print "\nAll %s load times were:" % config["batches"] 
+    print "Time\trows/sec"
     for s in timings :
-      print "%s" % s
+      print "%s\t%s" % (s, config["batch_size"]/s) 
     sys.stdout.flush()
 
   # Run each test config["test_iterations"] times
