@@ -93,13 +93,15 @@ def timeLoading(t, f, prepare=None) :
 
 def timeQuery(q) :
     """Call q() and time it."""
+    paramArray = [None]*config["test_threads"]
     start = time.time()
-    q()
+    pool_test.map( q, paramArray, 1)
     return time.time() - start
 
 
 
 pool_load = None
+pool_test = None
 
 if __name__ == '__main__':
   print "Start timeSeriesTest.py dataload with following config: "
@@ -126,13 +128,13 @@ if __name__ == '__main__':
 
   # Run each test 100 times
   # TODO: Add configurability for iterations and parallellism
+  pool_test = Pool( processes=config["test_threads"] )
   for test in config["tests"] :
     timings = []
     print "\nExecuting %s 100 times." % test
     for i in range(0, 100) :
         timer = timeQuery(test)
         timings.append(timer)
-        #print "took: %s" % timer
     print "\nAll 100 timings for %s were:" % test
     for s in timings :
       print "%s" % s

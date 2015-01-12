@@ -79,7 +79,7 @@ def arrayInsert(docArray) :
 
 import random    
 
-def query1() :
+def query1(arg) :
     """select 1 random column  where device_id in 4 random id's"""
     db = getMongoDB()
     ids = []
@@ -94,7 +94,7 @@ def query1() :
     #    print "\nERROR: result set for query1 is %s, expected %s." % (c, 3*iterations)
     #    pprint.pprint(ids)
     
-def query2() :
+def query2(arg) :
     """select 1 random column  where device_id in 4 random ids AND timestamp between t and t+400*ts_interval"""
     db = getMongoDB()
     ids = []
@@ -114,7 +114,7 @@ def query2() :
     #    print "\nERROR: result set for query2 is %s, expected %s." % (c, 3*400)
     #    pprint.pprint(ids)
     
-def query3() :
+def query3(arg) :
     """select 4 random columns where device_id in 4 random ids AND timestamp between t and t+400*ts_interval"""
     # Note: the point of this query is mostly to make life harder for columnar databases, while for a doc/row oriented db query2 and query3 are pretty much the same 
     db = getMongoDB()
