@@ -80,16 +80,15 @@ def timeLoading(t, f, prepare=None) :
     
        If prepare() is given, first call r = prepare(csv) and then f(r) with return value of prepare. Only f() is timed."""
     
-    pool = Pool( processes=config["load_threads"] )
     paramArray = []
     for i in range( 0, config["load_threads"] ) :
       paramArray.append( { "t" : t, "i" : i } )
     
-    csv_results = pool.map( getCsvBatch, paramArray, 1 )
+    csv_results = pool_load.map( getCsvBatch, paramArray, 1 )
     if(prepare) :
-        prepare_results = pool.map( prepare, csv_results )
+        prepare_results = pool_load.map( prepare, csv_results )
     start = time.time()
-    pool.map( f, prepare_results )
+    pool_load.map( f, prepare_results )
     return time.time() - start
 
 def timeQuery(q) :
@@ -100,7 +99,7 @@ def timeQuery(q) :
 
 
 
-
+pool_load = None
 
 if __name__ == '__main__':
   print "Start timeSeriesTest.py dataload with following config: "
@@ -108,6 +107,7 @@ if __name__ == '__main__':
 
   # Data load
   if config["load_f"] :
+    pool_load = Pool( processes=config["load_threads"] )
     config["init_f"]()
     t = config["starttime"]
     timings = []
