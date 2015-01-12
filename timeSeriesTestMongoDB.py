@@ -13,9 +13,27 @@ config        = None
 import tempfile
 import pymongo
 
+# provide mongod and pymongo version so that it is recorded as part of the inital output
+def getClientName() :
+  return "pymongo"
+
+def getClientVersion() :
+  return pymongo.version
+
+def getServerName() :
+  return "mongodb"
+
+def getServerVersion() :
+  client = pymongo.MongoClient( "mongodb://%s:%s/" % (config["dbhost"], config["dbport"]) )
+  return (client.server_info())['version']
+  
+
+
 def getMongoDB() :
     client = pymongo.MongoClient( "mongodb://%s:%s/" % (config["dbhost"], config["dbport"]) )
     return client[config["dbname"]]
+
+
 
 
 # Test initialization

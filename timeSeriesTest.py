@@ -104,6 +104,10 @@ pool_load = None
 pool_test = None
 
 if __name__ == '__main__':
+  config['client_name']    = dbdriver.getClientName()
+  config['client_version'] = dbdriver.getClientVersion()
+  config['server_name']    = dbdriver.getServerName()
+  config['server_version'] = dbdriver.getServerVersion()
   print "Start timeSeriesTest.py dataload with following config: "
   pprint.pprint(config)
 
