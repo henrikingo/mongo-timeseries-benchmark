@@ -122,7 +122,7 @@ def query2(arg) :
     col = cols[ random.randint(2,28) ]
     
     t = random.randint(config["starttime"], 
-                       config["starttime"]+config["iterations"]*config["ts_interval"]-400*config["ts_interval"])
+                       config["starttime"]+config["batches"]*config["ts_interval"]-400*config["ts_interval"])
     
     cursor = db.tstest.find( { "device_id" : { "$in" : ids }, 
                                "ts" : { "$gte" : t, "$lte" : t+400*config["ts_interval"] } }, 
@@ -146,7 +146,7 @@ def query3(arg) :
     col4 = cols[ random.randint(2,28) ]
 
     t = random.randint(config["starttime"], 
-                       config["starttime"]+config["iterations"]*config["ts_interval"]-400*config["ts_interval"])
+                       config["starttime"]+config["batches"]*config["ts_interval"]-400*config["ts_interval"])
         
     cursor = db.tstest.find( { "device_id" : { "$in" : ids }, 
                                "$and" : [ { "ts" : { "$gt" : t } }, { "ts" : { "$lt" : t+400*config["ts_interval"] } } ] }, 
