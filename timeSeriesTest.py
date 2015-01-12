@@ -21,7 +21,7 @@ config["batch_size"]      = 100*1000       # rows in a batch (100*1000) (cols is
 config["csvHeader"]       = "device_id,ts,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28\n"
 config["load_threads"]    = 8              # Parallel load threads (using multiprocessing module)
 config["test_threads"]    = 1              # Parallel query threads (using multiprocessing module)
-config["test_iterations"] = 100          # how many iterations is each test query executed
+config["test_iterations"] = 100            # how many iterations is each test query executed
 
 # DB vendor specific parameters
 # If you want to run only some part of the test, set any of the prepare_f, load_f, query1... to a false value.
@@ -125,8 +125,20 @@ if __name__ == '__main__':
       timings.append(timer)
       sys.stdout.flush()
     
-    print "\nAll %s load times were:" % config["batches"] 
-    print "Time\trows/sec"
+    print "\nResults for all %s load times were:" % config["batches"] 
+    import numpy
+    print "Average (s)    :\t%s" % numpy.average(timings)
+    print "Variance (s^2) :\t%s" % numpy.var(timings)
+    print "Variance/Mean  :\t%s" % ( numpy.var(timings) / numpy.average(timings) )
+    print "Min            :\t%s" % numpy.min(timings)
+    print "Median (50%%)   :\t%s" % numpy.median(timings)
+    print "90%% percentile :\t%s" % numpy.percentile(timings, 0.9)
+    print "95%% percentile :\t%s" % numpy.percentile(timings, 0.95) 
+    print "98%% percentile :\t%s" % numpy.percentile(timings, 0.98) 
+    print "99%% percentile :\t%s" % numpy.percentile(timings, 0.99) 
+    print "Max            :\t%s" % numpy.max(timings)
+    print
+    print "Time\trows/sec"    
     for s in timings :
       print "%s\t%s" % (s, config["batch_size"]/s) 
     sys.stdout.flush()
@@ -139,7 +151,19 @@ if __name__ == '__main__':
     for i in range(0, config["test_iterations"]) :
         timer = timeQuery(test)
         timings.append(timer)
-    print "\nAll %s timings for %s were:" % (config["test_iterations"], test)
+
+    print "\nResults for %s iterations of %s were:" % (config["test_iterations"], test)
+    print "Average (s)    :\t%s" % numpy.average(timings)
+    print "Variance (s^2) :\t%s" % numpy.var(timings)
+    print "Variance/Mean  :\t%s" % ( numpy.var(timings) / numpy.average(timings) )
+    print "Min            :\t%s" % numpy.min(timings)
+    print "Median (50%%)   :\t%s" % numpy.median(timings)
+    print "90%% percentile :\t%s" % numpy.percentile(timings, 0.9)
+    print "95%% percentile :\t%s" % numpy.percentile(timings, 0.95) 
+    print "98%% percentile :\t%s" % numpy.percentile(timings, 0.98) 
+    print "99%% percentile :\t%s" % numpy.percentile(timings, 0.99) 
+    print "Max            :\t%s" % numpy.max(timings)
+    print
     for s in timings :
       print "%s" % s
     sys.stdout.flush()
