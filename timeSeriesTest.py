@@ -148,6 +148,7 @@ if __name__ == '__main__':
                                         config["server_name"], config["server_version"], config["storage_engine"] ) )
     pyplot.ylabel("seconds")
     pyplot.xlabel("iteration")
+    pyplot.ylim(0.0, pyplot.ylim()[1])  #  Set y-axis to always start from 0
     import datetime
     timestr = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     pyplot.savefig("%s-%s-%s-%s-%s-%s.png" % (config["test_name"], config["load_f"].__name__, 
@@ -186,6 +187,7 @@ if __name__ == '__main__':
                                         config["server_name"], config["server_version"], config["storage_engine"] ) )
     pyplot.ylabel("seconds")
     pyplot.xlabel("iteration")
+    pyplot.ylim(0.0, pyplot.ylim()[1])  #  Set y-axis to always start from 0
     pyplot.savefig("%s-%s-%s-%s-%s-%s.png" % (config["test_name"], test.__name__, 
                                               config["server_name"], config["server_version"], config["storage_engine"],
                                               timestr ) , 
