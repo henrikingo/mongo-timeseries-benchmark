@@ -1,3 +1,7 @@
+# Output files from the script
+*.png
+*.out
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

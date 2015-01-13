@@ -14,6 +14,7 @@
 config = {}
 
 # Test parameters
+config["test_name"]       = "Simple timeseries benchmark"  # Used in graphs and filenames.  
 config["starttime"]       = 1388432485     # timestamp in the first batch to load (1388432485)
 config["ts_interval"]     = 60             # artificial time between each batch to load (60)
 config["batches"]         = 6000           # how many batches to load (6000) Note: for queries 2 and 3 to work this has to be > 400
@@ -104,10 +105,7 @@ pool_load = None
 pool_test = None
 
 if __name__ == '__main__':
-  config['client_name']    = dbdriver.getClientName()
-  config['client_version'] = dbdriver.getClientVersion()
-  config['server_name']    = dbdriver.getServerName()
-  config['server_version'] = dbdriver.getServerVersion()
+  dbdriver.getDbInfo(config) # Populate config with some runtime info about the db we are connected to
   print "Start timeSeriesTest.py dataload with following config: "
   pprint.pprint(config)
 
@@ -142,17 +140,33 @@ if __name__ == '__main__':
     for s in timings :
       print "%s\t%s" % (s, config["batch_size"]/s) 
     sys.stdout.flush()
+    # Finally print some matplotlib graphs as png
+    import matplotlib.pyplot as pyplot
+    pyplot.style.use("ggplot")
+    pyplot.plot( range(1, config["batches"]+1), timings, marker=".", markersize=3, linestyle="None" )
+    pyplot.title( "%s, %s\n%s %s %s" % (config["test_name"], config["load_f"].__name__, 
+                                        config["server_name"], config["server_version"], config["storage_engine"] ) )
+    pyplot.ylabel("seconds")
+    pyplot.xlabel("iteration")
+    import datetime
+    timestr = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    pyplot.savefig("%s-%s-%s-%s-%s-%s.png" % (config["test_name"], config["load_f"].__name__, 
+                                              config["server_name"], config["server_version"], config["storage_engine"],
+                                              timestr ) , 
+                   bbox_inches='tight')
+    pyplot.close()
 
+    
   # Run each test config["test_iterations"] times
   pool_test = Pool( processes=config["test_threads"] )
   for test in config["tests"] :
     timings = []
-    print "\nExecuting %s %s times." % (test, config["test_iterations"])
+    print "\nExecuting %s %s times." % (test.__name__, config["test_iterations"])
     for i in range(0, config["test_iterations"]) :
         timer = timeQuery(test)
         timings.append(timer)
 
-    print "\nResults for %s iterations of %s were:" % (config["test_iterations"], test)
+    print "\nResults for %s iterations of %s were:" % (config["test_iterations"], test.__name__)
     print "Average (s)    :\t%s" % numpy.average(timings)
     print "Variance (s^2) :\t%s" % numpy.var(timings)
     print "Variance/Mean  :\t%s" % ( numpy.var(timings) / numpy.average(timings) )
@@ -167,4 +181,14 @@ if __name__ == '__main__':
     for s in timings :
       print "%s" % s
     sys.stdout.flush()
+    pyplot.plot( range(1, config["test_iterations"]+1), timings, "." )
+    pyplot.title( "%s, %s\n%s %s %s" % (config["test_name"], test.__name__, 
+                                        config["server_name"], config["server_version"], config["storage_engine"] ) )
+    pyplot.ylabel("seconds")
+    pyplot.xlabel("iteration")
+    pyplot.savefig("%s-%s-%s-%s-%s-%s.png" % (config["test_name"], test.__name__, 
+                                              config["server_name"], config["server_version"], config["storage_engine"],
+                                              timestr ) , 
+                   bbox_inches='tight')
+    pyplot.close()
 
